@@ -33,6 +33,7 @@ int main()
     int max_fd, i;
     int client_fds[FD_SETSIZE]; //客户端文件描述符数组
     int maxIndex;
+    struct sockaddr_in client_addrs[FD_SETSIZE]; //保存客户端地址信息
 
     //创建监听socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -107,6 +108,7 @@ int main()
                 if (client_fds[i] < 0)
                 {
                     client_fds[i] = connectfd;  //保存客户端文件描述符
+                    client_addrs[i] = client_addr; //保存客户端地址信息
                     if (i > maxIndex)
                         maxIndex = i;  //更新最大索引
                     break;
@@ -141,10 +143,15 @@ int main()
                     //客户端关闭连接或发生错误
                     if (n == 0)
                     {
-                        printf("client disconnected\n");
+                        printf("client %s:%d disconnected\n",
+                                inet_ntoa(client_addrs[i].sin_addr),
+                                ntohs(client_addrs[i].sin_port));
                     }
                     else
                     {
+                        printf("client %s:%d receive error\n",
+                                inet_ntoa(client_addrs[i].sin_addr),
+                                ntohs(client_addrs[i].sin_port));
                         perror("[server] main failed! receive error");
                     }
                     
@@ -155,7 +162,10 @@ int main()
                 else
                 {
                     buff[n] = '\0';
-                    printf("received message from client: %s", buff);
+                    printf("received message from client %s:%d: %s",
+                            inet_ntoa(client_addrs[i].sin_addr),
+                            ntohs(client_addrs[i].sin_port),
+                            buff);
                     
                     //将消息回显给客户端
                     if (send(connectfd, buff, n, 0) < 0)
