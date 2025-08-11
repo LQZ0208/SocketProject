@@ -163,14 +163,52 @@ int main()
                 {
                     buff[n] = '\0';
                     printf("received message from client %s:%d: %s",
-                            inet_ntoa(client_addrs[i].sin_addr),
-                            ntohs(client_addrs[i].sin_port),
-                            buff);
+                        inet_ntoa(client_addrs[i].sin_addr),
+                        ntohs(client_addrs[i].sin_port),
+                        buff);
                     
-                    //将消息回显给客户端
-                    if (send(connectfd, buff, n, 0) < 0)
+                    // 计算当前连接的客户端数量
+                    int client_count = 0;
+                    for (int k = 0; k <= maxIndex; k++) 
                     {
-                        perror("[server] main failed! send error");
+                        if (client_fds[k] >= 0) 
+                        {
+                            client_count++;
+                        }
+                    }
+                    
+                    // 如果只有一个客户端，发送回给自己；否则广播给其他客户端
+                    if (client_count == 1) {
+                        // 只有一个客户端，发送回给发送者
+                        if (send(connectfd, buff, n, 0) < 0) 
+                        {
+                            perror("[server] main failed! send error");
+                        }
+                    } 
+                    else 
+                    {
+                        char broadcast_msg[MAXLINE + 64];
+                        int msg_len = snprintf(broadcast_msg, sizeof(broadcast_msg), 
+                                            "[%s:%d] %s", 
+                                            inet_ntoa(client_addrs[i].sin_addr),
+                                            ntohs(client_addrs[i].sin_port),
+                                            buff);
+                        
+                        // 多个客户端，广播给其他客户端
+                        for (int j = 0; j <= maxIndex; j++) 
+                        {
+                            int broadcast_fd = client_fds[j];
+                            if (broadcast_fd >= 0 && broadcast_fd != connectfd) 
+                            {   // 跳过发送者
+                                if (send(broadcast_fd, broadcast_msg, msg_len, 0) < 0) 
+                                {
+                                    printf("Failed to send message to client %s:%d\n",
+                                            inet_ntoa(client_addrs[j].sin_addr),
+                                            ntohs(client_addrs[j].sin_port));
+                                    perror("[server] main failed! send error");
+                                }
+                            }
+                        }
                     }
                 }
             }
