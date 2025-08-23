@@ -1,2 +1,3 @@
-# SocketProject
-![Image](https://github.com/LQZ0208/SocketProject/blob/main/ResultShow.png)
+记录学习
+1、socket io多路复用
+2、shader入门精要
